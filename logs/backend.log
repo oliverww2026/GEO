@@ -1,0 +1,25 @@
+
+> geo-backend@1.0.0 start
+> node dist/index.js
+
+[DB] 初始化默认演示企业
+[DB] 默认数据初始化完成
+[DB] 数据库已初始化
+=================================
+🚀 GEO Backend API 已启动
+📡 监听端口: 3001
+🌍 环境: production
+🔗 CORS 允许来源: http://localhost:4173
+🏢 应用模式: enterprise
+=================================
+2026-05-23T09:42:52.128Z - POST /api/auth/login
+2026-05-23T09:43:40.327Z - GET /api/health
+2026-05-23T09:44:49.299Z - POST /api/auth/login
+2026-05-23T09:44:58.119Z - POST /api/analysis
+2026-05-23T09:45:05.831Z - POST /api/auth/verify
+2026-05-23T09:46:13.941Z - GET /api/health
+2026-05-23T09:46:13.965Z - POST /api/analysis
+[AI] 开始调用 AI API (deepseek/deepseek-v4-pro)...
+[AI] API 调用完成, 耗时 105889ms, tokens: prompt=7700, completion=4522, total=12222
+[AI] finish_reason: stop, content length: 5135
+[AI] optimizationDetails 完整性: rewriteSuggestions=3, dataTraceSuggestions=2, structureEnhancement=有内容(300字), faqSuggestions=2, competitorComparison=2
