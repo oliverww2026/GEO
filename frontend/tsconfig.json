@@ -20,12 +20,7 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path mapping */
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+    /* Path mapping - handled by Vite alias in vite.config.ts */
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
