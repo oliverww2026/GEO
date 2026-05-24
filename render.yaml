@@ -7,7 +7,7 @@ services:
     plan: free
     rootDir: backend
     buildCommand: |
-      cd ../frontend && npm install && npm run build && cd ../backend && npm install && npm run build && mkdir -p public && cp -r ../frontend/dist/* public/
+      cd ../frontend && NODE_ENV=development npm install && NODE_ENV=development npm run build && cd ../backend && npm install && npm run build && mkdir -p public && cp -r ../frontend/dist/* public/
     startCommand: node dist/index.js
     healthCheckPath: /api/health
     envVars:
