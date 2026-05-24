@@ -25,7 +25,3 @@ services:
         value: deepseek/deepseek-v4-pro
       - key: APP_MODE
         value: enterprise
-    disk:
-      name: geo-data
-      mountPath: /opt/render/project/src/
-      sizeGB: 1
