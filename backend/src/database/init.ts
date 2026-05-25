@@ -11,14 +11,20 @@ let db: Database.Database | null = null;
 export function getDatabase(): Database.Database {
   if (db) return db;
 
-  // Render 持久化磁盘挂载在 /data，本地开发使用项目 data/ 目录
-  const dataDir = process.env.RENDER_DISK_PATH || path.join(__dirname, '../../data');
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-  }
-
-  const dbPath = process.env.DB_PATH || path.join(dataDir, 'geo.db');
+  // 优先使用 DB_PATH 环境变量（Render 持久化磁盘），否则本地项目目录
+  const dbPath = process.env.DB_PATH || (() => {
+    const dataDir = path.join(__dirname, '../../data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    return path.join(dataDir, 'geo.db');
+  })();
   console.log(`[DB] 数据库路径: ${dbPath}`);
+  // 确保数据库文件所在目录存在
+  const dbDir = path.dirname(dbPath);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
   db = new Database(dbPath);
 
   // 启用 WAL 模式提升并发性能
