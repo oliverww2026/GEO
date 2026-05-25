@@ -39,6 +39,7 @@ function initTables(): void {
     CREATE TABLE IF NOT EXISTS enterprises (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL UNIQUE,
+      invite_code TEXT NOT NULL UNIQUE,
       brand_name TEXT NOT NULL DEFAULT '',
       brand_position TEXT NOT NULL DEFAULT '',
       service_city TEXT NOT NULL DEFAULT '',
@@ -70,16 +71,20 @@ function initTables(): void {
     );
   `);
 
-  // 分析记录表（统计用量）
+  // 分析记录表（完整存储分析数据）
   db.exec(`
     CREATE TABLE IF NOT EXISTS analysis_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       enterprise_id INTEGER NOT NULL,
+      input_content TEXT NOT NULL DEFAULT '',
       content_length INTEGER NOT NULL DEFAULT 0,
       channels TEXT NOT NULL DEFAULT '',
       duration_ms INTEGER NOT NULL DEFAULT 0,
       success INTEGER NOT NULL DEFAULT 1,
+      result_json TEXT NOT NULL DEFAULT '',
+      error_message TEXT NOT NULL DEFAULT '',
+      overall_score REAL,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       FOREIGN KEY (user_id) REFERENCES users(id),
       FOREIGN KEY (enterprise_id) REFERENCES enterprises(id)
@@ -95,7 +100,7 @@ function initTables(): void {
     CREATE INDEX IF NOT EXISTS idx_analysis_logs_created ON analysis_logs(created_at);
   `);
 
-  // 如果企业表为空，创建默认演示企业
+  // 如果企业表为空，创建演示企业并生成邀请码
   const count = db.prepare('SELECT COUNT(*) as cnt FROM enterprises').get() as { cnt: number };
   if (count.cnt === 0) {
     console.log('[DB] 初始化默认演示企业');
@@ -104,53 +109,44 @@ function initTables(): void {
 }
 
 /**
+ * 生成随机邀请码（6位字母数字）
+ */
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
  * 初始化默认数据（演示用）
  */
 function seedDefaultData(): void {
   if (!db) return;
 
-  const appMode = process.env.APP_MODE || 'enterprise';
-
-  // 创建默认企业
+  // 创建默认企业（管理员首次启动后通过注册创建用户）
+  const inviteCode = generateInviteCode();
   const insertEnterprise = db.prepare(`
-    INSERT INTO enterprises (name, brand_name, brand_position, service_city, api_key)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO enterprises (name, invite_code, brand_name, brand_position, service_city, api_key)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
 
   insertEnterprise.run(
     '演示企业',
+    inviteCode,
     '久久金',
     '专业黄金回收管家',
     '深圳',
-    process.env.AI_API_KEY || ''  // 默认使用环境变量中的 Key
+    process.env.AI_API_KEY || ''
   );
 
-  if (appMode === 'enterprise') {
-    // 创建管理员账号
-    const bcrypt = require('bcryptjs');
-    const insertUser = db.prepare(`
-      INSERT INTO users (enterprise_id, username, password_hash, display_name, role)
-      VALUES (?, ?, ?, ?, ?)
-    `);
-    insertUser.run(
-      1,
-      'admin',
-      bcrypt.hashSync('admin123', 10),
-      '管理员',
-      'admin'
-    );
-
-    // 创建演示员工账号
-    insertUser.run(
-      1,
-      'employee1',
-      bcrypt.hashSync('employee123', 10),
-      '员工张三',
-      'employee'
-    );
-  }
-
-  console.log('[DB] 默认数据初始化完成');
+  console.log('========================================');
+  console.log('  🏢 演示企业已创建');
+  console.log(`  📨 企业邀请码: ${inviteCode}`);
+  console.log('  👉 注册时填写此邀请码即可加入企业');
+  console.log('========================================');
 }
 
 /**

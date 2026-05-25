@@ -129,17 +129,20 @@ router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
       marketingWords: transformMarketingWords(result.marketingWords)
     };
 
-    // 记录分析日志
+    // 记录完整分析日志（输入内容 + 分析结果 JSON）
     const db = getDatabase();
     db.prepare(`
-      INSERT INTO analysis_logs (user_id, enterprise_id, content_length, channels, duration_ms, success)
-      VALUES (?, ?, ?, ?, ?, 1)
+      INSERT INTO analysis_logs (user_id, enterprise_id, input_content, content_length, channels, duration_ms, success, result_json, overall_score)
+      VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
     `).run(
       user.userId,
       enterprise.id,
+      request.content,
       request.content.length,
       request.channels?.join(',') || '',
-      durationMs
+      durationMs,
+      JSON.stringify(result),
+      result.overallScore
     );
 
     // 返回结果
@@ -151,20 +154,23 @@ router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
   } catch (error) {
     const durationMs = Date.now() - startTime;
 
-    // 记录失败日志
+    // 记录失败日志（含错误信息和输入内容）
     try {
       const user = req.currentUser;
       if (user) {
         const db = getDatabase();
+        const errorMsg = error instanceof Error ? error.message : '未知错误';
         db.prepare(`
-          INSERT INTO analysis_logs (user_id, enterprise_id, content_length, channels, duration_ms, success)
-          VALUES (?, ?, ?, ?, ?, 0)
+          INSERT INTO analysis_logs (user_id, enterprise_id, input_content, content_length, channels, duration_ms, success, error_message)
+          VALUES (?, ?, ?, ?, ?, ?, 0, ?)
         `).run(
           user.userId,
           user.enterpriseId,
+          req.body?.content || '',
           req.body?.content?.length || 0,
           req.body?.channels?.join(',') || '',
-          durationMs
+          durationMs,
+          errorMsg
         );
       }
     } catch { /* ignore */ }
@@ -174,6 +180,77 @@ router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
       error: '分析失败',
       message: error instanceof Error ? error.message : '未知错误'
     });
+  }
+});
+
+/**
+ * GET /api/admin/logs
+ * 查询分析记录列表（管理员）
+ */
+router.get('/admin/logs', requireAuth, (req: Request, res: Response) => {
+  try {
+    const user = req.currentUser!;
+    // 管理员可查看同企业所有记录
+    if (user.role !== 'admin') {
+      // 普通员工只能看自己的
+      const db = getDatabase();
+      const rows = db.prepare(`
+        SELECT id, user_id, enterprise_id, content_length, channels, duration_ms, success, overall_score, error_message, created_at
+        FROM analysis_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 100
+      `).all(user.userId);
+      return res.json({ success: true, data: rows });
+    }
+
+    const db = getDatabase();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = (page - 1) * limit;
+
+    const rows = db.prepare(`
+      SELECT al.id, al.user_id, al.enterprise_id, u.username, u.display_name,
+             al.content_length, al.channels, al.duration_ms, al.success, al.overall_score, al.error_message, al.created_at
+      FROM analysis_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+      WHERE al.enterprise_id = ?
+      ORDER BY al.created_at DESC LIMIT ? OFFSET ?
+    `).all(user.enterpriseId, limit, offset);
+
+    const total = db.prepare(
+      'SELECT COUNT(*) as cnt FROM analysis_logs WHERE enterprise_id = ?'
+    ).get(user.enterpriseId) as { cnt: number };
+
+    res.json({ success: true, data: { rows, total: total.cnt, page, limit } });
+  } catch (error) {
+    console.error('获取分析记录失败:', error);
+    res.status(500).json({ error: '服务器错误', message: '获取分析记录失败' });
+  }
+});
+
+/**
+ * GET /api/admin/logs/:id
+ * 查询单条分析记录详情（含完整输入内容和结果）
+ */
+router.get('/admin/logs/:id', requireAuth, (req: Request, res: Response) => {
+  try {
+    const db = getDatabase();
+    const recordId = parseInt(req.params.id);
+    const user = req.currentUser!;
+
+    const row = db.prepare(`
+      SELECT al.*, u.username, u.display_name
+      FROM analysis_logs al
+      LEFT JOIN users u ON al.user_id = u.id
+      WHERE al.id = ? AND al.enterprise_id = ?
+    `).get(recordId, user.enterpriseId) as any;
+
+    if (!row) {
+      return res.status(404).json({ error: '记录不存在', message: '未找到该分析记录' });
+    }
+
+    res.json({ success: true, data: row });
+  } catch (error) {
+    console.error('获取分析记录详情失败:', error);
+    res.status(500).json({ error: '服务器错误', message: '获取分析记录详情失败' });
   }
 });
 

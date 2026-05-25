@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, Form, Input, Button, Typography, message, Space } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
@@ -90,8 +90,8 @@ function LoginPage() {
           </Form>
 
           <div style={{ textAlign: 'center' }}>
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              默认账号: admin / 密码: admin123
+            <Text type="secondary" style={{ fontSize: 13 }}>
+              还没有账号？<Link to="/register">立即注册</Link>
             </Text>
           </div>
         </Space>

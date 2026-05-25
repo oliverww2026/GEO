@@ -6,6 +6,7 @@ import { ProtectedRoute } from './auth/ProtectedRoute';
 import HomePage from './pages/HomePage';
 import ResultPage from './pages/ResultPage';
 import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 import AdminPage from './pages/AdminPage';
 import './App.css';
 
@@ -59,6 +60,7 @@ function AppLayout() {
       <Content style={{ padding: '24px 50px' }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/" element={
             <ProtectedRoute><HomePage /></ProtectedRoute>
           } />

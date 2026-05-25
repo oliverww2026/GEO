@@ -95,6 +95,53 @@ export function verifyToken(token: string): UserPayload | null {
 }
 
 /**
+ * 用户注册
+ */
+export async function registerUser(
+  inviteCode: string,
+  username: string,
+  password: string,
+  displayName: string
+): Promise<{ success: boolean; message: string }> {
+  const db = getDatabase();
+
+  // 查找企业
+  const enterprise = db.prepare(
+    'SELECT id, is_active FROM enterprises WHERE invite_code = ?'
+  ).get(inviteCode) as any;
+
+  if (!enterprise) {
+    return { success: false, message: '邀请码无效，请检查后重试' };
+  }
+  if (!enterprise.is_active) {
+    return { success: false, message: '该企业已被禁用，请联系管理员' };
+  }
+
+  // 检查用户名是否已存在（同企业内）
+  const existingUser = db.prepare(
+    'SELECT id FROM users WHERE enterprise_id = ? AND username = ?'
+  ).get(enterprise.id, username);
+
+  if (existingUser) {
+    return { success: false, message: '该用户名已被占用，请换一个' };
+  }
+
+  // 密码强度校验
+  if (password.length < 6) {
+    return { success: false, message: '密码至少需要6位' };
+  }
+
+  // 创建用户
+  const passwordHash = bcrypt.hashSync(password, 10);
+  db.prepare(`
+    INSERT INTO users (enterprise_id, username, password_hash, display_name, role)
+    VALUES (?, ?, ?, ?, 'employee')
+  `).run(enterprise.id, username, passwordHash, displayName);
+
+  return { success: true, message: '注册成功，请登录' };
+}
+
+/**
  * 根据 userId 获取企业信息
  */
 export function getEnterpriseByUserId(userId: number): EnterpriseInfo | null {

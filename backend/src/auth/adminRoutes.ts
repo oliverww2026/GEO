@@ -8,6 +8,18 @@ const router = Router();
 // 所有管理接口都需要管理员权限（requireAuth + requireAdmin）
 router.use(requireAuth, requireAdmin);
 
+/**
+ * 生成随机邀请码（6位字母数字）
+ */
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 // ===================== 企业 CRUD =====================
 
 /**
@@ -17,7 +29,7 @@ router.get('/admin/enterprises', (_req: Request, res: Response) => {
   try {
     const db = getDatabase();
     const rows = db.prepare(`
-      SELECT id, name, brand_name, brand_position, service_city,
+      SELECT id, name, invite_code, brand_name, brand_position, service_city,
              api_key, api_base_url, api_model, is_active,
              created_at, updated_at
       FROM enterprises ORDER BY created_at DESC
@@ -48,11 +60,14 @@ router.post('/admin/enterprises', (req: Request, res: Response) => {
       return res.status(409).json({ error: '企业已存在', message: `企业名称 "${name}" 已存在` });
     }
 
+    const inviteCode = generateInviteCode();
+
     const result = db.prepare(`
-      INSERT INTO enterprises (name, brand_name, brand_position, service_city, api_key, api_base_url, api_model)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO enterprises (name, invite_code, brand_name, brand_position, service_city, api_key, api_base_url, api_model)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       name,
+      inviteCode,
       brandName,
       brandPosition || '',
       serviceCity || '',

@@ -30,6 +30,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<{ success: boolean; message: string }>;
+  register: (inviteCode: string, username: string, password: string, displayName: string) => Promise<{ success: boolean; message: string }>;
   logout: () => void;
   getAuthHeaders: () => Record<string, string>;
 }
@@ -122,6 +123,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const register = useCallback(async (inviteCode: string, username: string, password: string, displayName: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteCode, username, password, displayName }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        return { success: false, message: result.message || '注册失败' };
+      }
+
+      return { success: true, message: result.message };
+    } catch (error) {
+      return { success: false, message: '网络错误，请检查后端服务是否启动' };
+    }
+  }, []);
+
   const logout = useCallback(() => {
     clearAuth();
     setState({
@@ -139,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [state.token]);
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, getAuthHeaders }}>
+    <AuthContext.Provider value={{ ...state, login, register, logout, getAuthHeaders }}>
       {children}
     </AuthContext.Provider>
   );
