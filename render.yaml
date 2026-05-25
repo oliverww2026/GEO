@@ -30,8 +30,8 @@ services:
         value: "10000"
       - key: CORS_ORIGINS
         value: "*"
-      - key: RENDER_DISK_PATH
-        value: /data
+      - key: DB_PATH
+        value: /data/geo.db
       - key: JWT_SECRET
         generateValue: true
       - key: AI_API_KEY
