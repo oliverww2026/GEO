@@ -131,14 +131,24 @@ export async function registerUser(
     return { success: false, message: '密码至少需要6位' };
   }
 
-  // 创建用户
+  // 创建用户：企业第一个注册的用户自动成为管理员
+  const userCount = (db.prepare(
+    'SELECT COUNT(*) as cnt FROM users WHERE enterprise_id = ?'
+  ).get(enterprise.id) as any).cnt;
+
+  const role = userCount === 0 ? 'admin' : 'employee';
+
   const passwordHash = bcrypt.hashSync(password, 10);
   db.prepare(`
     INSERT INTO users (enterprise_id, username, password_hash, display_name, role)
-    VALUES (?, ?, ?, ?, 'employee')
-  `).run(enterprise.id, username, passwordHash, displayName);
+    VALUES (?, ?, ?, ?, ?)
+  `).run(enterprise.id, username, passwordHash, displayName, role);
 
-  return { success: true, message: '注册成功，请登录' };
+  const msg = role === 'admin'
+    ? '注册成功！您是企业的第一个用户，已自动成为管理员'
+    : '注册成功，请登录';
+
+  return { success: true, message: msg };
 }
 
 /**
