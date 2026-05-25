@@ -1,5 +1,5 @@
 services:
-  # 后端服务（同时 serve 前端静态文件 + SQLite 持久化）
+  # 后端服务（同时 serve 前端静态文件 + SQLite 持久化存储）
   - type: web
     name: geo-backend
     env: node
@@ -7,14 +7,31 @@ services:
     plan: free
     rootDir: backend
     buildCommand: |
-      cd ../frontend && NODE_ENV=development npm install && NODE_ENV=development npm run build && cd ../backend && NODE_ENV=development npm install && npm run build && mkdir -p public && cp -r ../frontend/dist/* public/
+      echo "=== 安装后端依赖 ===" &&
+      npm install --production=false &&
+      echo "=== 构建后端 ===" &&
+      npm run build &&
+      echo "=== 安装前端依赖 ===" &&
+      cd ../frontend && npm install &&
+      echo "=== 构建前端 ===" &&
+      npx vite build &&
+      echo "=== 复制前端构建产物 ===" &&
+      mkdir -p ../backend/public && cp -r dist/* ../backend/public/
     startCommand: node dist/index.js
     healthCheckPath: /api/health
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: "10000"
       - key: CORS_ORIGINS
         value: "*"
+      - key: RENDER_DISK_PATH
+        value: /data
       - key: JWT_SECRET
         generateValue: true
       - key: AI_API_KEY
