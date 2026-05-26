@@ -34,7 +34,7 @@ const CONNECTION_CHECK_TIMEOUT = 5000 // 5秒快速检测后端连通性
 
 function HomePage() {
   const navigate = useNavigate()
-  const { getAuthHeaders, enterprise, user } = useAuth()
+  const { isAuthenticated, getAuthHeaders, enterprise, user } = useAuth()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [contentLength, setContentLength] = useState(0)
@@ -111,8 +111,8 @@ function HomePage() {
         return
       }
 
-      // 调用真实的后端API（使用企业配置的品牌信息）
-      const brandName = enterprise?.brandName || user?.displayName || '未设置'
+      // 构建品牌配置：登录用户从企业信息读取，未登录用表单值
+      const brandName = enterprise?.brandName || values.brandName || '未设置'
       const brandPosition = enterprise?.brandPosition || values.brandPosition || ''
       const serviceCity = enterprise?.serviceCity || values.serviceCity || ''
 
@@ -135,12 +135,17 @@ function HomePage() {
       // 启动真实进度条
       startRealProgress()
 
-      console.log('发送请求地址:', `${API_BASE_URL}/analysis`)
+      // 根据登录状态选择 API 端点：未登录用公开接口
+      const apiUrl = isAuthenticated
+        ? `${API_BASE_URL}/analysis`
+        : `${API_BASE_URL}/analysis/public`
+
+      console.log('发送请求地址:', apiUrl)
       console.log('请求参数:', {
         brandConfig: {
           brandName,
-          brandPosition: values.brandPosition || '',
-          serviceCity: values.serviceCity || ''
+          brandPosition: values.brandPosition || brandPosition,
+          serviceCity: values.serviceCity || serviceCity
         },
         content: values.content,
         channels: values.channels
@@ -151,12 +156,17 @@ function HomePage() {
       abortControllerRef.current = controller
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
 
-      const response = await fetch(`${API_BASE_URL}/analysis`, {
+      // 构建请求头：已登录带上 token，未登录不带
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (isAuthenticated) {
+        Object.assign(headers, getAuthHeaders())
+      }
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
+        headers,
         body: JSON.stringify({
           brandConfig: {
             brandName,
@@ -261,8 +271,9 @@ function HomePage() {
           border: '1px solid #adc6ff'
         }}>
           <Text style={{ color: '#1890ff' }}>
-            ℹ️ 当前企业：<Text strong>{enterprise?.brandName || user?.displayName || '未登录'}</Text>
+            ℹ️ 当前企业：<Text strong>{enterprise?.brandName || user?.displayName || '免登录模式'}</Text>
             {enterprise?.serviceCity && <span> | 服务城市：{enterprise.serviceCity}</span>}
+            {!isAuthenticated && <span> | <Text type="secondary">无需登录，直接使用</Text></span>}
           </Text>
         </div>
       </Card>

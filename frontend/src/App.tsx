@@ -1,6 +1,6 @@
 import { Layout, Space, Typography, Dropdown } from 'antd';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, SettingOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import HomePage from './pages/HomePage';
@@ -8,6 +8,7 @@ import ResultPage from './pages/ResultPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminPage from './pages/AdminPage';
+import SecurityPage from './pages/SecurityPage';
 import './App.css';
 
 const { Header, Content } = Layout;
@@ -30,7 +31,10 @@ function AppLayout() {
     { key: 'role', label: `角色: ${isAdmin ? '管理员' : '员工'}`, disabled: true },
     { key: 'divider', type: 'divider' as const },
     ...(isAdmin
-      ? [{ key: 'admin', label: '管理后台', icon: <SettingOutlined />, onClick: () => navigate('/admin') }]
+      ? [
+        { key: 'security', label: '安全监控', icon: <SafetyCertificateOutlined />, onClick: () => navigate('/security') },
+        { key: 'admin', label: '管理后台', icon: <SettingOutlined />, onClick: () => navigate('/admin') },
+      ]
       : []),
     { key: 'logout', label: '退出登录', icon: <LogoutOutlined />, danger: true, onClick: handleLogout },
   ];
@@ -61,14 +65,16 @@ function AppLayout() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/" element={
-            <ProtectedRoute><HomePage /></ProtectedRoute>
-          } />
+          {/* 首页免登录，直接打开内容检测页面 */}
+          <Route path="/" element={<HomePage />} />
           <Route path="/result" element={
             <ProtectedRoute><ResultPage /></ProtectedRoute>
           } />
           <Route path="/admin" element={
             <ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>
+          } />
+          <Route path="/security" element={
+            <ProtectedRoute requireAdmin><SecurityPage /></ProtectedRoute>
           } />
         </Routes>
       </Content>

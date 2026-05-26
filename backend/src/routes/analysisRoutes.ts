@@ -39,7 +39,7 @@ function transformMarketingWords(marketingWords: any[]): any {
 
   // 使用 Map 合并同一词汇的多次检测结果
   const wordMap = new Map<string, { word: string; count: number; penalty: number; category: string }>();
-  
+
   for (const mw of marketingWords) {
     const existing = wordMap.get(mw.word);
     if (existing) {
@@ -75,7 +75,7 @@ function transformMarketingWords(marketingWords: any[]): any {
  */
 router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
   const startTime = Date.now();
-  
+
   try {
     const user = req.currentUser!;
     const request: AnalysisRequest = req.body;
@@ -176,6 +176,74 @@ router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
     } catch { /* ignore */ }
 
     console.error('分析失败:', error);
+    res.status(500).json({
+      error: '分析失败',
+      message: error instanceof Error ? error.message : '未知错误'
+    });
+  }
+});
+
+/**
+ * POST /api/analysis/public
+ * 免登录分析内容——使用环境变量中的 AI API Key（用于跳过登录页直接使用）
+ */
+router.post('/analysis/public', async (req: Request, res: Response) => {
+  const startTime = Date.now();
+
+  try {
+    const request: AnalysisRequest = req.body;
+
+    // 验证请求参数
+    if (!request.brandConfig || !request.content) {
+      return res.status(400).json({
+        error: '缺少必要参数',
+        message: '请提供 brandConfig 和 content'
+      });
+    }
+
+    if (!request.brandConfig.brandName) {
+      return res.status(400).json({
+        error: '缺少品牌名称',
+        message: '请提供品牌名称'
+      });
+    }
+
+    if (request.content.trim().length < 10) {
+      return res.status(400).json({
+        error: '内容过短',
+        message: '内容至少需要10个字符'
+      });
+    }
+
+    // 使用环境变量中的 API Key
+    const apiKey = process.env.AI_API_KEY;
+    const baseUrl = process.env.AI_BASE_URL;
+    const model = process.env.AI_MODEL;
+
+    if (!apiKey) {
+      return res.status(400).json({
+        error: 'AI 配置缺失',
+        message: '服务器未配置 AI_API_KEY 环境变量'
+      });
+    }
+
+    const service = getAnalysisService(apiKey, baseUrl, model);
+    const result = await service.analyze(request);
+
+    const durationMs = Date.now() - startTime;
+
+    const transformedResult = {
+      ...result,
+      marketingWords: transformMarketingWords(result.marketingWords)
+    };
+
+    res.json({
+      success: true,
+      data: transformedResult
+    });
+
+  } catch (error) {
+    console.error('公开分析失败:', error);
     res.status(500).json({
       error: '分析失败',
       message: error instanceof Error ? error.message : '未知错误'
