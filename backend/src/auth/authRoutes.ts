@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { loginUser, registerUser, getEnterpriseByUserId } from './authService';
-import { requireAuth, requireAdmin } from './authMiddleware';
+import { requireAuth } from './authMiddleware';
+import { getDatabase } from '../database/init';
 
 const router = Router();
 
