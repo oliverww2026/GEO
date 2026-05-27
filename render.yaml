@@ -19,10 +19,6 @@ services:
       mkdir -p ../backend/public && cp -r dist/* ../backend/public/
     startCommand: node dist/index.js
     healthCheckPath: /api/health
-    disk:
-      name: sqlite-data
-      mountPath: /data
-      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -31,7 +27,7 @@ services:
       - key: CORS_ORIGINS
         value: "*"
       - key: DB_PATH
-        value: /data/geo.db
+        value: ./data/geo.db
       - key: JWT_SECRET
         generateValue: true
       - key: AI_API_KEY

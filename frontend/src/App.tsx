@@ -1,6 +1,6 @@
 import { Layout, Space, Typography, Dropdown } from 'antd';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
-import { UserOutlined, LogoutOutlined, SettingOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
+import { UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import HomePage from './pages/HomePage';
@@ -8,7 +8,6 @@ import ResultPage from './pages/ResultPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import AdminPage from './pages/AdminPage';
-import SecurityPage from './pages/SecurityPage';
 import './App.css';
 
 const { Header, Content } = Layout;
@@ -32,7 +31,6 @@ function AppLayout() {
     { key: 'divider', type: 'divider' as const },
     ...(isAdmin
       ? [
-        { key: 'security', label: '安全监控', icon: <SafetyCertificateOutlined />, onClick: () => navigate('/security') },
         { key: 'admin', label: '管理后台', icon: <SettingOutlined />, onClick: () => navigate('/admin') },
       ]
       : []),
@@ -72,9 +70,6 @@ function AppLayout() {
           } />
           <Route path="/admin" element={
             <ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>
-          } />
-          <Route path="/security" element={
-            <ProtectedRoute requireAdmin><SecurityPage /></ProtectedRoute>
           } />
         </Routes>
       </Content>
