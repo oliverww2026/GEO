@@ -63,8 +63,10 @@ function AppLayout() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          {/* 首页免登录，直接打开内容检测页面 */}
-          <Route path="/" element={<HomePage />} />
+          {/* 首页需要登录才能访问 */}
+          <Route path="/" element={
+            <ProtectedRoute><HomePage /></ProtectedRoute>
+          } />
           <Route path="/result" element={
             <ProtectedRoute><ResultPage /></ProtectedRoute>
           } />
