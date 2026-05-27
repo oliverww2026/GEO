@@ -11,8 +11,10 @@ import {
   message,
   Space,
   Typography,
-  Progress
+  Progress,
+  Modal
 } from 'antd'
+import { LoadingOutlined, CheckCircleOutlined } from '@ant-design/icons'
 
 const { TextArea } = Input
 const { Title, Text } = Typography
@@ -32,6 +34,21 @@ const CHANNELS = [
 const REQUEST_TIMEOUT = 300000 // 5分钟
 const CONNECTION_CHECK_TIMEOUT = 5000 // 5秒快速检测后端连通性
 
+// 分析步骤定义
+const ANALYSIS_STEPS = [
+  { key: 'validate', label: '验证内容格式与参数' },
+  { key: 'marketing', label: '检测营销词汇与风险' },
+  { key: 'authority', label: 'AI 正在评估内容权威性' },
+  { key: 'brandAnchor', label: 'AI 正在分析品牌锚定度' },
+  { key: 'models', label: 'AI 正在评估 7 大模型友好度' },
+  { key: 'optimization', label: 'AI 正在生成优化建议' },
+  { key: 'channel', label: 'AI 正在分析渠道匹配度' },
+  { key: 'report', label: '汇总生成分析报告' },
+]
+
+// 每步间隔（毫秒），模拟 AI 多轮思考过程
+const STEP_INTERVALS = [800, 1500, 4000, 4000, 5000, 5000, 4000, 3000]
+
 function HomePage() {
   const navigate = useNavigate()
   const { isAuthenticated, getAuthHeaders, enterprise, user } = useAuth()
@@ -39,8 +56,11 @@ function HomePage() {
   const [loading, setLoading] = useState(false)
   const [contentLength, setContentLength] = useState(0)
   const [progressPercent, setProgressPercent] = useState(0)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [completedSteps, setCompletedSteps] = useState<number[]>([])
   const abortControllerRef = useRef<AbortController | null>(null)
   const progressTimerRef = useRef<number | null>(null)
+  const stepTimerRef = useRef<number | null>(null)
 
   /**
    * 基于真实时间的进度条
@@ -73,6 +93,54 @@ function HomePage() {
     if (progressTimerRef.current !== null) {
       window.clearTimeout(progressTimerRef.current)
       progressTimerRef.current = null
+    }
+  }, [])
+
+  /**
+   * 启动分析步骤信息流
+   * 按 STEP_INTERVALS 时间间隔依次推进步骤
+   */
+  const startStepFlow = useCallback(() => {
+    setCurrentStep(0)
+    setCompletedSteps([])
+
+    let stepIndex = 0
+
+    const advance = () => {
+      // 标记当前步骤完成
+      setCompletedSteps(prev => [...prev, stepIndex])
+
+      stepIndex++
+      if (stepIndex >= ANALYSIS_STEPS.length) return
+
+      // 推进到下一步
+      setCurrentStep(stepIndex)
+      const delay = STEP_INTERVALS[stepIndex] || 3000
+      stepTimerRef.current = window.setTimeout(advance, delay)
+    }
+
+    // 第一步立即展示，延迟后标记完成
+    stepTimerRef.current = window.setTimeout(advance, STEP_INTERVALS[0])
+  }, [])
+
+  /**
+   * 停止步骤信息流，将所有步骤标记完成
+   */
+  const completeStepFlow = useCallback(() => {
+    if (stepTimerRef.current !== null) {
+      window.clearTimeout(stepTimerRef.current)
+      stepTimerRef.current = null
+    }
+    // 将所有剩余步骤标记完成
+    const allSteps = ANALYSIS_STEPS.map((_, i) => i)
+    setCompletedSteps(allSteps)
+    setCurrentStep(ANALYSIS_STEPS.length)
+  }, [])
+
+  const stopStepFlow = useCallback(() => {
+    if (stepTimerRef.current !== null) {
+      window.clearTimeout(stepTimerRef.current)
+      stepTimerRef.current = null
     }
   }, [])
 
@@ -132,8 +200,9 @@ function HomePage() {
       message.destroy()
       message.loading('正在分析内容，AI 模型处理中请耐心等待...', 0)
 
-      // 启动真实进度条
+      // 启动真实进度条和分析步骤信息流
       startRealProgress()
+      startStepFlow()
 
       // 根据登录状态选择 API 端点：未登录用公开接口
       const apiUrl = isAuthenticated
@@ -210,6 +279,7 @@ function HomePage() {
       message.destroy()
       setProgressPercent(100)
       stopProgress()
+      completeStepFlow()
       message.success('分析完成！')
 
       // 将API返回的data传递到结果页面
@@ -225,6 +295,7 @@ function HomePage() {
     } catch (error: any) {
       console.error('请求处理异常:', error)
       message.destroy()
+      stopStepFlow()
       if (error.name === 'AbortError') {
         message.error('分析超时（超过5分钟），请缩短内容后重试或联系技术支持', 8)
       } else if (error.message === 'Failed to fetch' || error.message?.includes('fetch')) {
@@ -235,7 +306,10 @@ function HomePage() {
     } finally {
       setLoading(false)
       stopProgress()
+      stopStepFlow()
       setProgressPercent(0)
+      setCurrentStep(0)
+      setCompletedSteps([])
       abortControllerRef.current = null
     }
   }
@@ -246,10 +320,13 @@ function HomePage() {
       abortControllerRef.current.abort()
     }
     stopProgress()
+    stopStepFlow()
     message.destroy()
     message.info('已取消分析')
     setLoading(false)
     setProgressPercent(0)
+    setCurrentStep(0)
+    setCompletedSteps([])
   }
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -334,18 +411,94 @@ function HomePage() {
           </Text>
         </Card>
 
-        {/* 进度条（分析中显示） */}
-        {loading && (
-          <Card style={{ marginBottom: 24 }}>
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <Text strong>AI 正在分析您的内容...</Text>
-              <Progress percent={progressPercent} status="active" strokeColor="#1890ff" />
-              <Text type="secondary">
-                提示：AI 分析需要 2-4 分钟，请耐心等待。内容越长分析时间越久。
-              </Text>
-            </Space>
-          </Card>
-        )}
+        {/* 分析过程弹窗 */}
+        <Modal
+          title="AI 正在分析您的内容"
+          open={loading}
+          footer={null}
+          closable={false}
+          maskClosable={false}
+          width={520}
+          centered
+        >
+          <div style={{ marginBottom: 20 }}>
+            <Progress
+              percent={progressPercent}
+              status="active"
+              strokeColor="#1890ff"
+              showInfo={false}
+            />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              预计还需 {progressPercent < 80 ? '2-4 分钟' : '不到 1 分钟'}
+            </Text>
+          </div>
+
+          <div style={{
+            maxHeight: 320,
+            overflowY: 'auto',
+            paddingRight: 8,
+          }}>
+            {ANALYSIS_STEPS.map((step, index) => {
+              const isCompleted = completedSteps.includes(index)
+              const isCurrent = index === currentStep && !isCompleted
+              const isPending = !isCompleted && !isCurrent
+
+              return (
+                <div
+                  key={step.key}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '10px 12px',
+                    marginBottom: 8,
+                    borderRadius: 6,
+                    background: isCompleted
+                      ? '#f6ffed'
+                      : isCurrent
+                        ? '#e6f7ff'
+                        : '#fafafa',
+                    border: isCompleted
+                      ? '1px solid #b7eb8f'
+                      : isCurrent
+                        ? '1px solid #91d5ff'
+                        : '1px solid #f0f0f0',
+                    transition: 'all 0.3s ease',
+                  }}
+                >
+                  <span style={{ marginRight: 12, fontSize: 16 }}>
+                    {isCompleted ? (
+                      <CheckCircleOutlined style={{ color: '#52c41a' }} />
+                    ) : isCurrent ? (
+                      <LoadingOutlined style={{ color: '#1890ff' }} />
+                    ) : (
+                      <span style={{ color: '#d9d9d9', fontSize: 14 }}>○</span>
+                    )}
+                  </span>
+                  <span style={{
+                    color: isPending ? '#bfbfbf' : '#262626',
+                    fontSize: 14,
+                    fontWeight: isCurrent ? 500 : 400,
+                    flex: 1,
+                  }}>
+                    {step.label}
+                  </span>
+                  {isCompleted && (
+                    <Text type="success" style={{ fontSize: 12 }}>完成</Text>
+                  )}
+                  {isCurrent && (
+                    <Text type="secondary" style={{ fontSize: 12 }}>处理中</Text>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
+            <Button danger size="small" onClick={handleCancel}>
+              取消分析
+            </Button>
+          </div>
+        </Modal>
 
         {/* 提交按钮 */}
         <Form.Item>
