@@ -109,6 +109,9 @@ function initTables(): void {
     CREATE INDEX IF NOT EXISTS idx_analysis_logs_created ON analysis_logs(created_at);
   `);
 
+  // 数据库迁移：为线上已有数据库补充缺失的列
+  runMigrations();
+
   // 如果企业表为空，创建演示企业并生成邀请码
   const count = db.prepare('SELECT COUNT(*) as cnt FROM enterprises').get() as { cnt: number };
   if (count.cnt === 0) {
@@ -127,6 +130,54 @@ function generateInviteCode(): string {
     code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return code;
+}
+
+/**
+ * 数据库迁移：检测并补充线上旧 schema 中缺失的列
+ * SQLite ALTER TABLE 不支持 IF NOT EXISTS，用 try/catch 处理
+ */
+function runMigrations(): void {
+  if (!db) return;
+
+  // 定义所有可能缺失的列（按依赖顺序）
+  const colMigrations = [
+    // enterprises 表 - 从最初最简 schema 逐步补全
+    { name: 'enterprises.invite_code', table: 'enterprises', col: 'invite_code', colDef: 'TEXT' },
+    { name: 'enterprises.brand_name', table: 'enterprises', col: 'brand_name', colDef: "TEXT NOT NULL DEFAULT ''" },
+    { name: 'enterprises.brand_position', table: 'enterprises', col: 'brand_position', colDef: "TEXT NOT NULL DEFAULT ''" },
+    { name: 'enterprises.service_city', table: 'enterprises', col: 'service_city', colDef: "TEXT NOT NULL DEFAULT ''" },
+    { name: 'enterprises.api_key', table: 'enterprises', col: 'api_key', colDef: "TEXT NOT NULL DEFAULT ''" },
+    { name: 'enterprises.api_base_url', table: 'enterprises', col: 'api_base_url', colDef: "TEXT NOT NULL DEFAULT 'https://zenmux.ai/api/v1'" },
+    { name: 'enterprises.api_model', table: 'enterprises', col: 'api_model', colDef: "TEXT NOT NULL DEFAULT 'deepseek/deepseek-v4-pro'" },
+    { name: 'enterprises.auth_token', table: 'enterprises', col: 'auth_token', colDef: "TEXT NOT NULL DEFAULT ''" },
+    // analysis_logs 表
+    { name: 'analysis_logs.overall_score', table: 'analysis_logs', col: 'overall_score', colDef: 'REAL' },
+  ];
+
+  for (const mig of colMigrations) {
+    try {
+      // 先检查列是否已存在
+      const colInfo = db.pragma(`table_info(${mig.table})`) as any[];
+      const exists = colInfo.some((c: any) => c.name === mig.col);
+
+      if (!exists) {
+        db.exec(`ALTER TABLE ${mig.table} ADD COLUMN ${mig.col} ${mig.colDef}`);
+        console.log(`[Migration] ✓ 已添加: ${mig.name}`);
+
+        // 特殊处理 invite_code：为已有记录生成唯一邀请码
+        if (mig.col === 'invite_code') {
+          const rows = db.prepare(`SELECT id FROM ${mig.table} WHERE invite_code IS NULL OR invite_code = ''`).all() as any[];
+          for (const row of rows) {
+            const code = generateInviteCode();
+            db.prepare(`UPDATE ${mig.table} SET invite_code = ? WHERE id = ?`).run(code, row.id);
+            console.log(`[Migration]   为企业 ID=${row.id} 生成邀请码: ${code}`);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[Migration] ✗ ${mig.name} 失败:`, err.message);
+    }
+  }
 }
 
 /**

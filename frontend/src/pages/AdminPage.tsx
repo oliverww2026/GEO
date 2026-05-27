@@ -322,19 +322,6 @@ export default function AdminPage() {
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
-  // 格式化内容摘要
-  const formatPreview = (jsonStr: string) => {
-    try {
-      const parsed = JSON.parse(jsonStr);
-      if (parsed.overallScore !== undefined) {
-        return `总分: ${parsed.overallScore}分`;
-      }
-      return JSON.stringify(parsed).slice(0, 200);
-    } catch {
-      return jsonStr.slice(0, 200);
-    }
-  };
-
   // 企业表格列定义
   const enterpriseColumns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
@@ -354,18 +341,6 @@ export default function AdminPage() {
     },
     { title: '品牌定位', dataIndex: 'brand_position', key: 'brand_position', ellipsis: true },
     { title: '服务城市', dataIndex: 'service_city', key: 'service_city' },
-    {
-      title: 'API Key',
-      dataIndex: 'api_key',
-      key: 'api_key',
-      width: 200,
-      render: (v: string) => v ? (
-        <Space>
-          <KeyOutlined style={{ color: '#52c41a' }} />
-          <Text copyable={{ text: v }} ellipsis style={{ maxWidth: 120 }}>{v.slice(0, 20)}...</Text>
-        </Space>
-      ) : <Tag>未配置</Tag>,
-    },
     {
       title: '状态',
       dataIndex: 'is_active',

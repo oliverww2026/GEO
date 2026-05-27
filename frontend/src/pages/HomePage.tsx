@@ -124,17 +124,32 @@ function HomePage() {
   }, [])
 
   /**
-   * 停止步骤信息流，将所有步骤标记完成
+   * 停止步骤信息流，将所有剩余步骤按短间隔逐步完成（最后一步最后完成）
    */
   const completeStepFlow = useCallback(() => {
     if (stepTimerRef.current !== null) {
       window.clearTimeout(stepTimerRef.current)
       stepTimerRef.current = null
     }
-    // 将所有剩余步骤标记完成
-    const allSteps = ANALYSIS_STEPS.map((_, i) => i)
-    setCompletedSteps(allSteps)
-    setCurrentStep(ANALYSIS_STEPS.length)
+
+    // 找到未完成的步骤索引列表
+    const remainingSteps: number[] = []
+    setCompletedSteps(prev => {
+      for (let i = 0; i < ANALYSIS_STEPS.length; i++) {
+        if (!prev.includes(i)) remainingSteps.push(i)
+      }
+      return prev
+    })
+
+    // 按短间隔逐步完成每个剩余步骤（200ms 间隔，最后一步额外延迟）
+    remainingSteps.forEach((stepIndex, idx) => {
+      const isLast = idx === remainingSteps.length - 1
+      const delay = (idx + 1) * 200 + (isLast ? 400 : 0)
+      window.setTimeout(() => {
+        setCompletedSteps(prev => [...prev, stepIndex])
+        setCurrentStep(stepIndex + 1)
+      }, delay)
+    })
   }, [])
 
   const stopStepFlow = useCallback(() => {
