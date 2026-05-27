@@ -12,9 +12,9 @@ services:
       echo "=== 构建后端 ===" &&
       npm run build &&
       echo "=== 安装前端依赖 ===" &&
-      cd ../frontend && npm install &&
+      cd ../frontend && npm install --production=false &&
       echo "=== 构建前端 ===" &&
-      npx vite build &&
+      npx --no-install vite build &&
       echo "=== 复制前端构建产物 ===" &&
       mkdir -p ../backend/public && cp -r dist/* ../backend/public/
     startCommand: node dist/index.js
