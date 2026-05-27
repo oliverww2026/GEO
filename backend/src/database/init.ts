@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
+import bcrypt from 'bcryptjs';
 
 let db: Database.Database | null = null;
 
@@ -134,8 +135,8 @@ function generateInviteCode(): string {
 function seedDefaultData(): void {
   if (!db) return;
 
-  // 创建默认企业（管理员首次启动后通过注册创建用户）
-  const inviteCode = generateInviteCode();
+  // 固定邀请码，避免每次重启后邀请码变化
+  const inviteCode = process.env.DEFAULT_INVITE_CODE || 'JIUJIN';
   const insertEnterprise = db.prepare(`
     INSERT INTO enterprises (name, invite_code, brand_name, brand_position, service_city, api_key)
     VALUES (?, ?, ?, ?, ?, ?)
@@ -150,9 +151,25 @@ function seedDefaultData(): void {
     process.env.AI_API_KEY || ''
   );
 
+  // 预置管理员账号（固定账密，避免每次重启后需要重新注册）
+  const adminUsername = process.env.DEFAULT_ADMIN_USERNAME || 'admin';
+  const adminPassword = process.env.DEFAULT_ADMIN_PASSWORD || 'geo2024';
+  const adminPasswordHash = bcrypt.hashSync(adminPassword, 10);
+
+  // 获取刚创建的企业 ID
+  const enterprise = db!.prepare('SELECT id FROM enterprises WHERE invite_code = ?').get(inviteCode) as any;
+  if (enterprise) {
+    db!.prepare(`
+      INSERT INTO users (enterprise_id, username, password_hash, display_name, role)
+      VALUES (?, ?, ?, ?, 'admin')
+    `).run(enterprise.id, adminUsername, adminPasswordHash, '管理员');
+  }
+
   console.log('========================================');
   console.log('  🏢 演示企业已创建');
   console.log(`  📨 企业邀请码: ${inviteCode}`);
+  console.log(`  👤 管理员账号: ${adminUsername}`);
+  console.log(`  🔑 管理员密码: ${adminPassword}`);
   console.log('  👉 注册时填写此邀请码即可加入企业');
   console.log('========================================');
 }
