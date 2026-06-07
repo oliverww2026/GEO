@@ -4,6 +4,7 @@ import { AnalysisRequest } from '../types';
 import { requireAuth } from '../auth/authMiddleware';
 import { getEnterpriseByUserId } from '../auth/authService';
 import { getDatabase } from '../database/init';
+import { checkQuota, consumeQuota } from '../services/quotaService';
 
 const router = Router();
 let analysisService: AiAnalysisService | null = null;
@@ -102,6 +103,17 @@ router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
       });
     }
 
+    // ── 配额检查 ──
+    const quota = checkQuota(user.userId);
+    if (!quota.allowed) {
+      return res.status(402).json({
+        error: '次数不足',
+        message: `今日免费次数已用完（${quota.usedToday}/${quota.limitToday}），请购买套餐继续使用`,
+        quota,
+        requirePayment: true,
+      });
+    }
+
     // 获取用户企业的 API Key
     const enterprise = getEnterpriseByUserId(user.userId);
     if (!enterprise || !enterprise.apiKey) {
@@ -129,6 +141,9 @@ router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
       marketingWords: transformMarketingWords(result.marketingWords)
     };
 
+    // 消耗一次配额
+    consumeQuota(user.userId);
+
     // 记录完整分析日志（输入内容 + 分析结果 JSON）
     const db = getDatabase();
     db.prepare(`
@@ -145,10 +160,12 @@ router.post('/analysis', requireAuth, async (req: Request, res: Response) => {
       result.overallScore
     );
 
-    // 返回结果
+    // 返回结果（含最新配额信息）
+    const updatedQuota = checkQuota(user.userId);
     res.json({
       success: true,
-      data: transformedResult
+      data: transformedResult,
+      quota: updatedQuota,
     });
 
   } catch (error) {
@@ -237,12 +254,48 @@ router.post('/analysis/public', async (req: Request, res: Response) => {
       marketingWords: transformMarketingWords(result.marketingWords)
     };
 
+    // 记录公开分析日志（user_id=0 表示免登录/匿名用户）
+    try {
+      const db = getDatabase();
+      db.prepare(`
+        INSERT INTO analysis_logs (user_id, enterprise_id, input_content, content_length, channels, duration_ms, success, result_json, overall_score)
+        VALUES (0, 0, ?, ?, ?, ?, 1, ?, ?)
+      `).run(
+        request.content,
+        request.content.length,
+        request.channels?.join(',') || '',
+        durationMs,
+        JSON.stringify(result),
+        result.overallScore
+      );
+    } catch (logErr) {
+      console.warn('记录公开分析日志失败:', logErr);
+    }
+
     res.json({
       success: true,
       data: transformedResult
     });
 
   } catch (error) {
+    const durationMs = Date.now() - startTime;
+
+    // 记录公开分析失败日志
+    try {
+      const db = getDatabase();
+      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      db.prepare(`
+        INSERT INTO analysis_logs (user_id, enterprise_id, input_content, content_length, channels, duration_ms, success, error_message)
+        VALUES (0, 0, ?, ?, ?, ?, 0, ?)
+      `).run(
+        req.body?.content || '',
+        req.body?.content?.length || 0,
+        req.body?.channels?.join(',') || '',
+        durationMs,
+        errorMsg
+      );
+    } catch { /* ignore */ }
+
     console.error('公开分析失败:', error);
     res.status(500).json({
       error: '分析失败',
@@ -274,17 +327,18 @@ router.get('/admin/logs', requireAuth, (req: Request, res: Response) => {
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = (page - 1) * limit;
 
+    // 管理员可查看：本企业记录 + 公开分析记录（enterprise_id=0）
     const rows = db.prepare(`
       SELECT al.id, al.user_id, al.enterprise_id, u.username, u.display_name,
              al.content_length, al.channels, al.duration_ms, al.success, al.overall_score, al.error_message, al.created_at
       FROM analysis_logs al
       LEFT JOIN users u ON al.user_id = u.id
-      WHERE al.enterprise_id = ?
+      WHERE al.enterprise_id = ? OR (al.enterprise_id = 0 AND al.user_id = 0)
       ORDER BY al.created_at DESC LIMIT ? OFFSET ?
     `).all(user.enterpriseId, limit, offset);
 
     const total = db.prepare(
-      'SELECT COUNT(*) as cnt FROM analysis_logs WHERE enterprise_id = ?'
+      "SELECT COUNT(*) as cnt FROM analysis_logs WHERE enterprise_id = ? OR (enterprise_id = 0 AND user_id = 0)"
     ).get(user.enterpriseId) as { cnt: number };
 
     res.json({ success: true, data: { rows, total: total.cnt, page, limit } });
@@ -308,7 +362,7 @@ router.get('/admin/logs/:id', requireAuth, (req: Request, res: Response) => {
       SELECT al.*, u.username, u.display_name
       FROM analysis_logs al
       LEFT JOIN users u ON al.user_id = u.id
-      WHERE al.id = ? AND al.enterprise_id = ?
+      WHERE al.id = ? AND (al.enterprise_id = ? OR (al.enterprise_id = 0 AND al.user_id = 0))
     `).get(recordId, user.enterpriseId) as any;
 
     if (!row) {

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../config/env'
 import { useAuth } from '../auth/AuthContext'
+import PaywallModal from '../components/PaywallModal'
 import {
   Card,
   Form,
@@ -58,6 +59,7 @@ function HomePage() {
   const [progressPercent, setProgressPercent] = useState(0)
   const [currentStep, setCurrentStep] = useState(0)
   const [completedSteps, setCompletedSteps] = useState<number[]>([])
+  const [paywallOpen, setPaywallOpen] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
   const progressTimerRef = useRef<number | null>(null)
   const stepTimerRef = useRef<number | null>(null)
@@ -268,6 +270,16 @@ function HomePage() {
       console.log('响应状态:', response.status)
 
       if (!response.ok) {
+        // 处理配额不足（402）
+        if (response.status === 402) {
+          const errorData = await response.json()
+          message.destroy()
+          setPaywallOpen(true)
+          setLoading(false)
+          stopProgress()
+          return
+        }
+
         const errorText = await response.text()
         console.error('API请求失败:', errorText)
         message.destroy()
@@ -377,6 +389,20 @@ function HomePage() {
       >
         {/* 步骤1：内容输入 */}
         <Card title="【步骤1】内容输入" style={{ marginBottom: 24 }}>
+          <Form.Item
+            label="内容标题"
+            name="title"
+            rules={[
+              { required: true, message: '请输入内容标题' },
+              { max: 200, message: '标题不超过200字' }
+            ]}
+          >
+            <Input
+              placeholder="例如：如何选择适合的营销渠道"
+              maxLength={200}
+            />
+          </Form.Item>
+
           <Form.Item
             label={
               <Space>
@@ -541,6 +567,17 @@ function HomePage() {
           </Space>
         </Form.Item>
       </Form>
+
+      {/* 付费弹窗 */}
+      <PaywallModal
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        onPaySuccess={() => {
+          setPaywallOpen(false)
+          message.success('支付成功，配额已更新！')
+        }}
+        reason="quota_exceeded"
+      />
     </div>
   )
 }

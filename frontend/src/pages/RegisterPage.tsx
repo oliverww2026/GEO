@@ -36,7 +36,7 @@ function RegisterPage() {
       // 自动登录
       const loginResult = await login(values.username, values.password);
       if (loginResult.success) {
-        navigate('/', { replace: true });
+        navigate('/app', { replace: true });
       } else {
         message.warning('注册成功但自动登录失败，请手动登录');
         navigate('/login', { replace: true });

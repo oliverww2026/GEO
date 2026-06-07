@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import analysisRoutes from './routes/analysisRoutes';
 import authRoutes from './auth/authRoutes';
 import adminRoutes from './auth/adminRoutes';
+import payRoutes from './routes/payRoutes';
 import { getDatabase } from './database/init';
 
 // 加载环境变量
@@ -55,6 +56,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api', authRoutes);          // 认证路由（登录、获取当前用户）
 app.use('/api', analysisRoutes);      // 分析路由（含免登录公开接口 /analysis/public）
 app.use('/api', adminRoutes);         // 管理路由（管理员专用：企业/用户管理）
+app.use('/api', payRoutes);           // 支付路由（配额查询、创建订单、支付回调）
 
 // SPA fallback - 所有非 API 请求返回前端 index.html
 app.get(/^(?!\/api).*/, (_req, res) => {

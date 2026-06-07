@@ -80,6 +80,34 @@ function initTables(): void {
     );
   `);
 
+  // 订单表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      plan_type TEXT NOT NULL DEFAULT 'single',
+      amount INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      trade_no TEXT NOT NULL DEFAULT '',
+      out_trade_no TEXT NOT NULL DEFAULT '',
+      expire_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // 每日使用次数表
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS daily_usage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      count INTEGER NOT NULL DEFAULT 0,
+      UNIQUE(user_id, date)
+    );
+  `);
+
   // 分析记录表（完整存储分析数据）
   db.exec(`
     CREATE TABLE IF NOT EXISTS analysis_logs (

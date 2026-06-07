@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GEO 智测工具 - 前端架构全览</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/theme/white.min.css">
+<style>
+  :root {
+    --primary: #4F46E5; --accent: #06B6D4; --dark: #0F172A; --gray: #64748B;
+    --green: #10B981; --red: #EF4444; --orange: #F59E0B; --purple: #8B5CF6;
+  }
+  .reveal { font-family: 'PingFang SC','Microsoft YaHei',sans-serif; }
+  .reveal h1,.reveal h2,.reveal h3 { color: var(--dark); font-weight: 800; text-transform: none; }
+  .reveal h2 { font-size: 1.8em; margin-bottom: 0.5em; }
+  .reveal .slides section { padding: 24px 40px; }
+  .reveal pre { font-size: 0.52em; border-radius: 12px; box-shadow: none; }
+  .reveal code { background: #F1F5F9; border-radius: 6px; padding: 2px 6px; }
+
+  .cover h1 { font-size: 3em; color: var(--primary); }
+  .cover .sub { font-size: 1.3em; color: var(--gray); }
+  .cover .tag { display:inline-block; background:linear-gradient(135deg,var(--primary),#7C3AED); color:#fff; padding:6px 20px; border-radius:20px; }
+
+  .stats { display:flex; justify-content:center; gap:48px; margin:24px 0; }
+  .stat b { font-size:2.8em; font-weight:900; color:var(--primary); display:block; }
+  .stat span { color:var(--gray); font-size:.8em; }
+
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+
+  .card { background:#F8FAFC; border-radius:10px; padding:16px; text-align:left; border-left:4px solid var(--primary); }
+  .card h4 { margin:0 0 4px; color:var(--primary); font-size:.95em; }
+  .card .path { font-family:monospace; color:var(--gray); font-size:.75em; }
+  .card p { margin:4px 0 0; color:#475569; font-size:.8em; line-height:1.5; }
+
+  .tc { background:#F8FAFC; border-radius:10px; padding:14px 10px; text-align:center; border:1px solid #E2E8F0; }
+  .tc .icon { font-size:2em; }
+  .tc .name { font-weight:700; color:var(--dark); }
+  .tc .ver { color:var(--gray); font-size:.75em; }
+
+  .flow { font-family:'JetBrains Mono',monospace; font-size:.62em; background:#1E293B; color:#E2E8F0; border-radius:14px; padding:24px 28px; text-align:left; line-height:2.2; white-space:pre; }
+  .fdot { color:var(--accent); } .fpath { color:var(--green); } .fguard { color:var(--orange); }
+
+  .hl { background:linear-gradient(135deg,#EEF2FF,#F0F9FF); border-radius:10px; padding:16px 20px; font-size:.78em; line-height:1.7; color:var(--dark); text-align:left; margin-top:14px; }
+
+  table.t { width:100%; border-collapse:collapse; font-size:.62em; margin-top:12px; }
+  table.t th { background:var(--primary); color:#fff; padding:8px 12px; text-align:left; }
+  table.t td { padding:8px 12px; border-bottom:1px solid #E2E8F0; }
+  table.t tr:nth-child(even){ background:#F8FAFC; }
+
+  .layers { display:flex; gap:14px; justify-content:center; margin-top:16px; }
+  .layers > div { flex:1; min-width:120px; background:#F8FAFC; border-radius:10px; padding:16px; text-align:center; border-top:4px solid var(--primary); }
+  .layers h4 { margin:0 0 6px; color:var(--primary); font-size:.85em; }
+  .layers p { margin:0; font-size:.7em; color:var(--gray); line-height:1.6; }
+
+  ul.s { text-align:left; font-size:.72em; line-height:2; color:#475569; margin:0; padding-left:20px; }
+
+  .tag-r { display:inline-block; padding:2px 10px; border-radius:4px; font-weight:700; font-size:.75em; }
+  .tag-b { background:#DBEAFE; color:#2563EB; } .tag-g { background:#D1FAE5; color:#059669; }
+
+  .end h2 { color:var(--primary); }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- 1. 封面 -->
+<section class="cover">
+  <div class="tag" style="margin-bottom:16px;">🚀 GEO 生成式引擎优化</div>
+  <h1>GEO 智测工具</h1>
+  <div class="sub">前端架构设计全览</div>
+  <div style="margin-top:36px;color:var(--gray);font-size:.85em;">
+    React 18 · TypeScript 5 · Ant Design 5 · Vite 5
+  </div>
+</section>
+
+<!-- 2. 项目概览 -->
+<section>
+  <h2>📋 项目概览</h2>
+  <div class="stats">
+    <div class="stat"><b>7</b><span>页面路由</span></div>
+    <div class="stat"><b>6</b><span>评分维度</span></div>
+    <div class="stat"><b>5+</b><span>AI模型覆盖</span></div>
+    <div class="stat"><b>100+</b><span>营销词库</span></div>
+  </div>
+  <div class="hl">
+    <strong>🎯 核心功能：</strong>评估内容对 AI 模型召回品牌的友好程度 → 识别弱点 → 可执行优化建议<br>
+    <strong>👥 用户角色：</strong>企业管理员 / 企业员工 / 免登录访客（每日1次免费）
+  </div>
+</section>
+
+<!-- 3. 技术栈 -->
+<section>
+  <h2>⚙️ 技术栈</h2>
+  <div class="grid4">
+    <div class="tc"><div class="icon">⚛️</div><div class="name">React</div><div class="ver">v18.2</div></div>
+    <div class="tc"><div class="icon">🔷</div><div class="name">TypeScript</div><div class="ver">v5.2</div></div>
+    <div class="tc"><div class="icon">🐜</div><div class="name">Ant Design</div><div class="ver">v5.12</div></div>
+    <div class="tc"><div class="icon">⚡</div><div class="name">Vite</div><div class="ver">v5.0</div></div>
+    <div class="tc"><div class="icon">🔀</div><div class="name">React Router</div><div class="ver">v6.20</div></div>
+    <div class="tc"><div class="icon">📡</div><div class="name">Axios</div><div class="ver">v1.6</div></div>
+    <div class="tc"><div class="icon">📅</div><div class="name">Day.js</div><div class="ver">v1.11</div></div>
+    <div class="tc"><div class="icon">🧩</div><div class="name">ESLint</div><div class="ver">v8.55</div></div>
+  </div>
+</section>
+
+<!-- 4. 页面全景 -->
+<section>
+  <h2>🗺️ 页面结构全景</h2>
+  <div class="grid2">
+    <div class="card" style="border-left-color:var(--primary)"> <div class="path">/</div><h4>🏠 LandingPage</h4><p>产品首页 · Hero区+特性+定价+评价 · 无需登录</p></div>
+    <div class="card" style="border-left-color:var(--accent)">  <div class="path">/login</div><h4>🔐 LoginPage</h4><p>用户名密码表单 · JWT Token认证</p></div>
+    <div class="card" style="border-left-color:var(--green)">   <div class="path">/register</div><h4>📝 RegisterPage</h4><p>邀请码注册 · 企业绑定 · 员工自助</p></div>
+    <div class="card" style="border-left-color:var(--orange)">  <div class="path">/app</div><h4>🔍 HomePage</h4><p>内容输入+渠道选择+分析进度Modal</p></div>
+    <div class="card" style="border-left-color:var(--purple)">  <div class="path">/result</div><h4>📊 ResultPage</h4><p>6维评分+模型友好度+优化建议报告</p></div>
+    <div class="card" style="border-left-color:var(--red)">     <div class="path">/admin</div><h4>⚙️ AdminPage</h4><p>管理后台 · 企业管理 · 仅管理员</p></div>
+  </div>
+</section>
+
+<!-- 5. 路由架构 -->
+<section>
+  <h2>🔀 路由架构</h2>
+  <div class="flow">
+<span class="fdot">App (AuthProvider → BrowserRouter)</span>
+│
+├── <span style="color:#94A3B8">无 Header 布局（全屏页面）</span>
+│   ├── <span class="fpath">/</span>          → LandingPage
+│   ├── <span class="fpath">/login</span>    → LoginPage
+│   └── <span class="fpath">/register</span> → RegisterPage
+│
+└── <span style="color:#94A3B8">带 Header 布局</span>
+    ├── <span class="fpath">/app</span>      → <span class="fguard">ProtectedRoute</span> → HomePage
+    ├── <span class="fpath">/result</span>   → <span class="fguard">ProtectedRoute</span> → ResultPage
+    └── <span class="fpath">/admin</span>    → <span class="fguard">ProtectedRoute(admin)</span> → AdminPage
+  </div>
+  <div class="hl">
+    <strong>设计要点：</strong><code>NO_HEADER_PATHS</code> 数组控制布局切换；<code>ProtectedRoute</code> 组件包裹需认证页面，支持 <code>requireAdmin</code> 角色校验
+  </div>
+</section>
+
+<!-- 6. 认证系统 -->
+<section>
+  <h2>🔐 认证与授权</h2>
+  <div class="grid2">
+    <div>
+      <h4 style="color:var(--primary)">AuthContext 全局状态</h4>
+      <ul class="s">
+        <li><code>token</code> — JWT Token</li>
+        <li><code>user</code> — 用户信息 (userId, role)</li>
+        <li><code>enterprise</code> — 企业信息 (brandName, serviceCity)</li>
+        <li><code>isAuthenticated</code> — 登录态</li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="color:var(--primary)">核心方法</h4>
+      <ul class="s">
+        <li><code>login(username, password)</code></li>
+        <li><code>register(inviteCode, ...)</code></li>
+        <li><code>logout()</code> — 清空 localStorage</li>
+        <li><code>getAuthHeaders()</code> — Bearer Token</li>
+      </ul>
+    </div>
+  </div>
+  <div class="hl">
+    <strong>持久化：</strong>token/user/enterprise 存于 <code>localStorage</code>，启动恢复 + 后台 token 验证。<br>
+    <strong>路由守卫：</strong><code>ProtectedRoute</code> 检查 <code>isAuthenticated</code>，未登录 → <code>/login</code>
+  </div>
+</section>
+
+<!-- 7. HomePage 分析流程 -->
+<section>
+  <h2>🔍 分析主页 (HomePage)</h2>
+  <div class="layers">
+    <div><h4>步骤1</h4><p><strong>内容输入</strong><br>TextArea 大字框<br>字数实时统计<br>≥100字 | ≤10000字</p></div>
+    <div><h4>步骤2</h4><p><strong>投放渠道</strong><br>7 个渠道可选<br>今日头条/抖音/公众号<br>知乎/百度/其他/未定</p></div>
+    <div><h4>分析过程</h4><p><strong>进度 Modal</strong><br>8 步分析信息流<br>真实时间进度条<br>可随时取消</p></div>
+    <div><h4>结果跳转</h4><p><strong>→ /result</strong><br>API 数据 → state<br>localStorage 备份<br>防刷新数据丢失</p></div>
+  </div>
+</section>
+
+<!-- 8. 分析进度 UX -->
+<section>
+  <h2>⏳ 分析进度 UX 设计</h2>
+  <div class="grid2">
+    <div>
+      <h4 style="color:var(--primary)">真实时间进度条</h4>
+      <ul class="s">
+        <li>对数曲线：前 30s → 40%，渐近 95%</li>
+        <li>每 2 秒更新一次百分比</li>
+        <li>API 返回后瞬间跳至 100%</li>
+        <li>显示预计剩余时间文字</li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="color:var(--primary)">8 步分析信息流</h4>
+      <ul class="s">
+        <li>验证内容格式与参数</li>
+        <li>检测营销词汇与风险</li>
+        <li>评估内容权威性</li>
+        <li>分析品牌锚定度</li>
+        <li>评估 7 大模型友好度</li>
+        <li>生成优化建议</li>
+        <li>分析渠道匹配度</li>
+        <li>汇总生成分析报告</li>
+      </ul>
+    </div>
+  </div>
+  <div class="hl">每步间隔 0.8s~5s，模拟多轮 AI 思考。完成后剩余步骤 200ms 快速完成。</div>
+</section>
+
+<!-- 9. ResultPage 报告结构 -->
+<section>
+  <h2>📊 分析报告 (ResultPage)</h2>
+  <table class="t">
+    <tr><th>模块</th><th>内容</th><th>组件</th></tr>
+    <tr><td>🎯 一句话结论</td><td>综合评分 + 友好度等级</td><td>Card + Statistic</td></tr>
+    <tr><td>📊 核心数据</td><td>评分/友好度/字数/强友好模型数</td><td>Row + Col + Badge</td></tr>
+    <tr><td>🤖 模型友好度</td><td>各AI模型评分卡片 (弱→强排列)</td><td>Card + Popover 详情</td></tr>
+    <tr><td>📈 维度评分</td><td>6维雷达 (权威性/类型/数据/品牌)</td><td>Card + Progress</td></tr>
+    <tr><td>⚠️ 营销词检测</td><td>替换建议表 (可一键复制)</td><td>Table + copyable</td></tr>
+    <tr><td>💡 优化建议</td><td>改写方案/数据溯源/FAQ/竞品</td><td>Collapse + Table</td></tr>
+    <tr><td>📍 渠道分析</td><td>利好/利空/适配模型</td><td>Card 网格</td></tr>
+    <tr><td>📡 探针验证</td><td>发布后验证节点 + 风险声明</td><td>Alert 列表</td></tr>
+  </table>
+</section>
+
+<!-- 10. 支付系统 -->
+<section>
+  <h2>💳 支付与付费</h2>
+  <div class="grid3">
+    <div class="tc" style="border-top:3px solid var(--orange)">
+      <div class="icon" style="font-size:1.5em">⚡</div>
+      <div class="name">单次检测</div>
+      <div style="font-size:1.6em;font-weight:900;color:var(--dark)">¥9.9<span style="font-size:.5em;color:var(--gray)">/次</span></div>
+    </div>
+    <div class="tc" style="border-top:3px solid var(--primary);border:2px solid var(--primary)">
+      <div style="background:var(--primary);color:#fff;border-radius:12px;padding:2px 12px;font-size:.7em;display:inline-block;margin-bottom:4px">最受欢迎</div>
+      <div class="icon" style="font-size:1.5em">👑</div>
+      <div class="name">月度会员</div>
+      <div style="font-size:1.6em;font-weight:900;color:var(--primary)">¥49<span style="font-size:.5em;color:var(--gray)">/月</span></div>
+    </div>
+    <div class="tc" style="border-top:3px solid var(--green)">
+      <div class="icon" style="font-size:1.5em">⭐</div>
+      <div class="name">年度会员</div>
+      <div style="font-size:1.6em;font-weight:900;color:var(--dark)">¥399<span style="font-size:.5em;color:var(--gray)">/年</span></div>
+    </div>
+  </div>
+  <div class="hl" style="margin-top:18px">
+    <strong>PaywallModal：</strong>次数用完自动弹出 → 选择套餐 → 虎皮椒支付 → 轮询支付状态 → 成功后关闭<br>
+    <strong>PaySuccessPage：</strong>支付成功回调页 · 每日配额限制：免费1次/会员10次/年费不限
+  </div>
+</section>
+
+<!-- 11. API 通信 -->
+<section>
+  <h2>📡 API 通信架构</h2>
+  <table class="t">
+    <tr><th>方法</th><th>端点</th><th>认证</th><th>说明</th></tr>
+    <tr><td><span class="tag-r tag-b">POST</span></td><td>/api/auth/login</td><td>否</td><td>用户登录</td></tr>
+    <tr><td><span class="tag-r tag-b">POST</span></td><td>/api/auth/register</td><td>否</td><td>邀请码注册</td></tr>
+    <tr><td><span class="tag-r tag-b">POST</span></td><td>/api/auth/verify</td><td>Bearer</td><td>Token 有效性验证</td></tr>
+    <tr><td><span class="tag-r tag-b">POST</span></td><td>/api/analysis</td><td>Bearer</td><td>已登录分析</td></tr>
+    <tr><td><span class="tag-r tag-b">POST</span></td><td>/api/analysis/public</td><td>否</td><td>免登录公开分析</td></tr>
+    <tr><td><span class="tag-r tag-b">POST</span></td><td>/api/pay/create</td><td>Bearer</td><td>创建支付订单</td></tr>
+    <tr><td><span class="tag-r tag-g">GET</span></td><td>/api/pay/query/:id</td><td>Bearer</td><td>查询支付状态</td></tr>
+    <tr><td><span class="tag-r tag-g">GET</span></td><td>/api/health</td><td>否</td><td>后端连通性检测</td></tr>
+  </table>
+  <div class="hl">
+    <strong>Vite 代理：</strong><code>/api → http://localhost:3001</code> · 超时控制 5分钟 · 连通性 5秒快速检测 · 双API端点(登录/公开)
+  </div>
+</section>
+
+<!-- 12. 类型系统 -->
+<section>
+  <h2>📐 TypeScript 类型系统</h2>
+  <div class="grid2">
+    <div>
+      <h4 style="color:var(--primary)">核心接口 (10个)</h4>
+      <ul class="s">
+        <li><code>BrandConfig</code> — 品牌配置</li>
+        <li><code>AnalysisRequest</code> — 分析请求</li>
+        <li><code>AnalysisResult</code> — 分析结果</li>
+        <li><code>DimensionScores</code> — 6维评分</li>
+        <li><code>ModelScore</code> — 模型评分</li>
+        <li><code>MarketingWord</code> — 营销词</li>
+        <li><code>RewriteItem</code> — 改写建议</li>
+        <li><code>FAQItem</code> — FAQ条目</li>
+        <li><code>ChannelAnalysis</code> — 渠道分析</li>
+        <li><code>OptimizationDetails</code> — 优化详情</li>
+      </ul>
+    </div>
+    <div>
+      <h4 style="color:var(--primary)">设计原则</h4>
+      <ul class="s">
+        <li>✅ 全量类型覆盖（无 any）</li>
+        <li>✅ 请求/响应一一对应</li>
+        <li>✅ 联合类型约束 level 等级</li>
+        <li>✅ 可选字段明确标注 <code>?</code></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 13. 项目结构 -->
+<section>
+  <h2>📁 项目文件结构</h2>
+  <div class="flow" style="font-size:.58em;line-height:1.9;">
+frontend/
+├── <span class="fdot">package.json</span>         依赖与脚本配置
+├── <span class="fdot">vite.config.ts</span>        Vite 配置 + /api 代理
+├── <span class="fdot">index.html</span>            入口 HTML
+├── src/
+│   ├── <span class="fdot">main.tsx</span>           ReactDOM 挂载
+│   ├── <span class="fdot">App.tsx</span>            路由定义 + 布局分发
+│   ├── <span class="fpath">config/</span>
+│   │   └── <span class="fpath">env.ts</span>       API_BASE_URL 环境配置
+│   ├── <span class="fpath">auth/</span>
+│   │   └── <span class="fpath">AuthContext.tsx</span>  全局认证上下文
+│   ├── <span class="fpath">types/</span>
+│   │   └── <span class="fpath">index.ts</span>     TypeScript 类型定义
+│   ├── <span class="fpath">components/</span>
+│   │   └── <span class="fpath">PaywallModal.tsx</span> 付费弹窗组件
+│   ├── <span class="fpath">utils/</span>
+│   │   └── <span class="fpath">markdownTableParser.ts</span>
+│   └── <span class="fpath">pages/</span>
+│       ├── <span class="fpath">LandingPage.tsx</span>   产品首页
+│       ├── <span class="fpath">LoginPage.tsx</span>    登录页
+│       ├── <span class="fpath">RegisterPage.tsx</span> 注册页
+│       ├── <span class="fpath">HomePage.tsx</span>     分析主页
+│       ├── <span class="fpath">ResultPage.tsx</span>   分析报告
+│       └── <span class="fpath">PaySuccessPage.tsx</span>支付成功
+└── <span class="fpath">slides/</span>
+    └── <span class="fpath">index.html</span>          ← 本幻灯片
+  </div>
+</section>
+
+<!-- 14. 总结 -->
+<section class="end">
+  <h2>✅ 架构总结</h2>
+  <div class="stats">
+    <div class="stat"><b>分层清晰</b><span>认证层 · 路由层 · 页面层 · 组件层</span></div>
+    <div class="stat"><b>类型安全</b><span>全量 TypeScript 类型覆盖</span></div>
+    <div class="stat"><b>UX 细腻</b><span>进度条 · 信息流 · 防刷新 · 超时</span></div>
+    <div class="stat"><b>商业闭环</b><span>免费→付费→支付→配额管理</span></div>
+  </div>
+  <div class="hl" style="text-align:center;margin-top:24px;">
+    React 18 + TypeScript 5 + Ant Design 5 + Vite 5<br>
+    <strong style="color:var(--primary)">让内容被 AI 看见 🚀</strong>
+  </div>
+</section>
+
+</div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.0.4/dist/reveal.min.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: 'c/t',
+    width: 1200,
+    height: 750,
+    margin: 0.08,
+    transition: 'slide',
+    plugins: []
+  });
+</script>
+</body>
+</html>

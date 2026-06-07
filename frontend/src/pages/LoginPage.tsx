@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { Card, Form, Input, Button, Typography, message, Space } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useAuth } from '../auth/AuthContext';
@@ -8,8 +8,12 @@ const { Title, Text } = Typography;
 
 function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+
+  // 从 URL 获取登录后跳转目标，默认为 /app
+  const redirectTo = searchParams.get('redirect') || '/app';
 
   const handleLogin = async (values: { username: string; password: string }) => {
     setLoading(true);
@@ -17,7 +21,7 @@ function LoginPage() {
       const result = await login(values.username, values.password);
       if (result.success) {
         message.success(result.message);
-        navigate('/', { replace: true });
+        navigate(redirectTo, { replace: true });
       } else {
         message.error(result.message);
       }
